@@ -67,7 +67,19 @@ RUN pip3 install tccli awscli --break-system-packages && \
 RUN sudo npm install -g @openai/codex@0.118.0
 RUN sudo npm install -g @anthropic-ai/claude-code@2.1.98
 RUN sudo npm install -g @mariozechner/pi-coding-agent@0.73.0
-
+# --- CRED-1028 v2 (canonical): pi-ai openai-completions upstream-compat payload ---
+# payload: patches/openai-completions.cred1036-v2.js (md5 403593a61d7b57bd76d5dc5af0458358)
+# three build-time self-checks: payload md5 gate / dual marker grep / dynamic import
+COPY patches/openai-completions.cred1036-v2.js /tmp/openai-completions.cred1036-v2.js
+RUN set -eux; \
+    P=/usr/local/lib/node_modules/@mariozechner/pi-coding-agent/node_modules/@mariozechner/pi-ai/dist/providers/openai-completions.js; \
+    echo "403593a61d7b57bd76d5dc5af0458358  /tmp/openai-completions.cred1036-v2.js" | md5sum -c -; \
+    sudo cp /tmp/openai-completions.cred1036-v2.js "$P"; \
+    sudo chmod 644 "$P"; \
+    grep -q makeSyntheticToolCallId "$P"; \
+    grep -q coerceToolCallArguments "$P"; \
+    node -e "import('$P').then(m=>{if(typeof m.convertMessages!=='function')process.exit(2);console.log('cred1028-v2 payload ok')})"; \
+    sudo rm -f /tmp/openai-completions.cred1036-v2.js
 RUN sudo chmod +x /usr/local/bin/kerbrute
 RUN mkdir -p /home/kali/.config/nuclei && \
     echo >> /home/kali/.config/nuclei/config.yaml && \
